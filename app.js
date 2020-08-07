@@ -20,6 +20,7 @@
  *
  */
 require('dotenv').config();
+const axios = require('axios').default;
 
 'use strict';
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
@@ -42,14 +43,15 @@ app.post('/webhook', (req, res) => {
     // Check the webhook event is from a Page subscription
     if (body.object === 'page') {
 
-        body.entry.forEach(function(entry) {
+        body.entry.forEach(function (entry) {
 
             // Gets the body of the webhook event
             let webhook_event = entry.messaging[0];
-            console.log(webhook_event);
+            // console.log(webhook_event);
 
 
             // Get the sender PSID
+            // console.log(webhook_event.sender)
             let sender_psid = webhook_event.sender.id;
             console.log('Sender ID: ' + sender_psid);
 
@@ -103,14 +105,16 @@ app.get('/webhook', (req, res) => {
 
 function handleMessage(sender_psid, received_message) {
     let response;
-
     // Checks if the message contains text
     if (received_message.text) {
         // Create the payload for a basic text message, which
         // will be added to the body of our request to the Send API
         response = {
-            "text": `You sent the message: "${received_message.text}". Now send me an attachment!`
+            "text": received_message.text
         }
+        console.log(sender_psid);
+        console.log(received_message.text);
+        sendMessageToServerAPI(sender_psid, received_message.text);
     } else if (received_message.attachments) {
         // Get the URL of the message attachment
         let attachment_url = received_message.attachments[0].payload.url;
@@ -142,7 +146,7 @@ function handleMessage(sender_psid, received_message) {
     }
 
     // Send the response message
-    callSendAPI(sender_psid, response);
+    // callSendAPI(sender_psid, response);
 }
 
 function handlePostback(sender_psid, received_postback) {
@@ -158,7 +162,8 @@ function handlePostback(sender_psid, received_postback) {
         response = { "text": "Oops, try sending another image." }
     }
     // Send the message to acknowledge the postback
-    callSendAPI(sender_psid, response);
+    // callSendAPI(sender_psid, response);
+    sendMessageToServerAPI(sender_psid, response);
 }
 
 function callSendAPI(sender_psid, response) {
@@ -182,5 +187,18 @@ function callSendAPI(sender_psid, response) {
         } else {
             console.error("Unable to send message:" + err);
         }
+    });
+}
+function sendMessageToServerAPI(sender_psid, text) {
+    // Construct the message body
+    // Send the HTTP request to the Messenger Platform
+     // Construct the message body
+    // Send the HTTP request to the Messenger Platform
+    axios.post('http://127.0.0.1:8000/api/receive-fb-message', {
+        sender: sender_psid,
+        recipient: "582962692387350",
+        text: text
+    }).catch(function (error) {
+        console.log(error);
     });
 }
